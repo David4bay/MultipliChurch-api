@@ -1,46 +1,61 @@
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database(':memory:');
+const sqlite3 = require('sqlite3').verbose()
+const db = new sqlite3.Database('db/church.db', (err) => {
+    if (err) {
+        console.error(err.message)
+    } else {
+        console.log('Connected to the church database.')
+    }
+})
 
-const schema = `
-CREATE TABLE IF NOT EXISTS member (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    password TEXT NOT NULL
-);
+db.serialize(() => {
 
-CREATE TABLE IF NOT EXISTS admin (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    password TEXT NOT NULL,
-    category_id INTEGER,
-    FOREIGN KEY (category_id) REFERENCES categories (id)
-);
+    db.run("PRAGMA foreign_keys = ON")
 
-CREATE TABLE IF NOT EXISTS churches (
-    id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL,
-    admin_id INTEGER,
-    total_members INTEGER DEFAULT 0 NOT NULL,
-    FOREIGN KEY (admin_id) REFERENCES admin (id)
-`;
+    const schema = `
+    CREATE TABLE IF NOT EXISTS user (
+        id INTEGER PRIMARY KEY,
+        username TEXT NOT NULL,
+        password TEXT NOT NULL,
+        isAdmin BOOLEAN NOT NULL DEFAULT 0
+    );
 
-db.exec(schema, (err) => {
-    if (err) console.error(err.message);
-    else console.log('Multiple tables created successfully.');
-});
+    CREATE TABLE IF NOT EXISTS churches (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        admin_id INTEGER,
+        total_members INTEGER DEFAULT 0 NOT NULL,
+        FOREIGN KEY (admin_id) REFERENCES user (id) ON DELETE SET NULL ON UPDATE CASCADE,
+        FOREIGN KEY (total_members) REFERENCES members (id) ON DELETE SET NULL ON UPDATE CASCADE
+    );
 
-// db.serialize(() => {
-//     db.run("CREATE TABLE lorem (info TEXT)");
+    CREATE TABLE IF NOT EXISTS members (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        church_id INTEGER,
+        FOREIGN KEY (church_id) REFERENCES churches (id)
+    );
+     `
+    db.exec(schema, (err) => {
+        if (err) console.error(err.message)
+        else console.log('Multiple tables created successfully.')
+    })
+})
 
-//     const stmt = db.prepare("INSERT INTO lorem VALUES (?)");
-//     for (let i = 0; i < 10; i++) {
-//         stmt.run("Ipsum " + i);
-//     }
-//     stmt.finalize();
+// Promisified helpers
+db.asyncGet = (sql, params = []) =>
+    new Promise((resolve, reject) => {
+        db.get(sql, params, (err, row) => {
+            if (err) reject(err)
+            else resolve(row)
+        })
+    })
 
-//     db.each("SELECT rowid AS id, info FROM lorem", (err, row) => {
-//         console.log(row.id + ": " + row.info);
-//     });
-// });
+db.asyncRun = (sql, params = []) =>
+    new Promise((resolve, reject) => {
+        db.run(sql, params, function (err) {
+            if (err) reject(err)
+            else resolve(this) // `this.lastID` and `this.changes` available
+        })
+    })
 
-module.exports = db;
+module.exports = db
