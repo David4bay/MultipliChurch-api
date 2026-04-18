@@ -1,0 +1,29 @@
+{
+  "name": "church-api",
+  "version": "1.0.0",
+  "description": "RESTful expressjs backend for multiplichurch project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/David4bay/MultipliChurch-api.git"
+  },
+  "author": "David Bayode",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/David4bay/MultipliChurch-api/issues"
+  },
+  "homepage": "https://github.com/David4bay/MultipliChurch-api#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-validator": "^7.3.2",
+    "jsonwebtoken": "^9.0.3",
+    "nodemon": "^3.1.14",
+    "sqlite3": "^6.0.1"
+  }
+}
