@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken')
 
 function requireAuth(req, res, next) {
     const authHeader = req.headers.authorization
+    // added hardcoded secret to make it easier to test 
+    const secret = process.env.JWT_SECRET || "djfdjei!£$£4"
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'No token provided' })
