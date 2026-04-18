@@ -39,13 +39,19 @@ async function getChurchById(req, res) {
 // POST /churches — admin only
 async function createChurch(req, res) {
     const { name } = req.body
-    const admin_id = req.user.id // from JWT, not request body
+    const admin_id = req.user.id
 
     if (!name) {
         return res.status(400).json({ message: 'Church name is required' })
     }
 
     try {
+        // Guard: verify admin exists in DB
+        const adminExists = await db.asyncGet('SELECT id FROM user WHERE id = ? AND isAdmin = 1', [admin_id])
+        if (!adminExists) {
+            return res.status(403).json({ message: 'Admin user not found' })
+        }
+
         const existing = await db.asyncGet('SELECT id FROM churches WHERE name = ?', [name])
         if (existing) {
             return res.status(400).json({ message: 'A church with that name already exists' })
