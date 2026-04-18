@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken")
 async function login(req, res) {
     const request = req.body
 
+    console.log("Login request received:", request)
     try {
         if (!request.username || !request.password) {
             return res.status(400).json({ message: "Username and password are required" })
@@ -12,6 +13,7 @@ async function login(req, res) {
 
         const user = await db.asyncGet("SELECT * FROM user WHERE username = ?", [request.username])
 
+        console.log("User found in database:", user)
         if (!user) {
             return res.status(401).json({ message: "Invalid username" })
         }
@@ -23,7 +25,10 @@ async function login(req, res) {
         }
 
         const token = jwt.sign(
-            { id: user.id, username: user.username },
+            { 
+                id: user.id, username: user.username, 
+                role: user.isAdmin ? "admin" : "member" 
+            },
             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         )
@@ -39,6 +44,7 @@ async function login(req, res) {
 async function signup(req, res) {
     const request = req.body
 
+    console.log("Signup request received:", request)
     try {
         if (!request.username || !request.password || !request.role) {
             return res.status(400).json({ message: "Username, password and role are required" })
@@ -48,10 +54,11 @@ async function signup(req, res) {
             return res.status(400).json({ message: "Role must be either admin or member" })
         }
 
-        // Check for existing user first, before hashing
+        console.log("Signup request received:", request)
         const existingUser = await db.asyncGet("SELECT id FROM user WHERE username = ?", [request.username])
 
         if (existingUser) {
+            console.log("User already exists with username:", request.username)
             return res.status(400).json({ message: "User already exists" })
         }
 

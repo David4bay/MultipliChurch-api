@@ -15,28 +15,34 @@ const {
     getMembers, 
     getMemberById, 
     removeMember, 
-    updateMember
+    updateMember,
+    createMember
  } = require("./controllers/members");
 
- const express = require("express");
+const { requireAuth, requireAdmin } = require("./middleware/auth.middleware");
+
+
+const express = require("express");
 const app = express.Router();
 const sqlite3 = require('sqlite3').verbose();
 
 app.use(cors())
 app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
-app.get("/login", login)
+app.post("/login", login)
 app.post("/signup", signup)
 
-app.get("/churches", getChurches)
-app.get("/churches/:id", getChurchById)
-app.put("/churches/:id", updateChurch)
-app.post("/churches", createChurch)
-app.delete("/churches/:id", deleteChurch)
+app.get("/churches", requireAuth, getChurches)
+app.get("/churches/:id", requireAuth, getChurchById)
+app.put("/churches/:id", requireAuth, requireAdmin, updateChurch)
+app.post("/churches", requireAuth, requireAdmin, createChurch)
+app.delete("/churches/:id", requireAuth, requireAdmin, deleteChurch)
 
-app.get("/members", getMembers)
-app.get("/members/:id", getMemberById)
-app.put("/members/:id", updateMember)
-app.delete("/members/:id", removeMember)
+app.get("/churches/:churchId/members", requireAuth, getMembers)
+app.get("/churches/:churchId/members/:id", requireAuth, getMemberById)
+app.put("/churches/:churchId/members/:id", requireAuth, requireAdmin, updateMember)
+app.post("/churches/:churchId/members", requireAuth, requireAdmin, createMember)
+app.delete("/churches/:churchId/members/:id", requireAuth, requireAdmin, removeMember)
 
 module.exports = app;

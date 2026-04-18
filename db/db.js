@@ -13,35 +13,34 @@ db.serialize(() => {
 
     const schema = `
     CREATE TABLE IF NOT EXISTS user (
-        id INTEGER PRIMARY KEY,
-        username TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
-        isAdmin BOOLEAN NOT NULL DEFAULT 0
+        isAdmin INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS churches (
-        id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
         admin_id INTEGER,
         total_members INTEGER DEFAULT 0 NOT NULL,
-        FOREIGN KEY (admin_id) REFERENCES user (id) ON DELETE SET NULL ON UPDATE CASCADE,
-        FOREIGN KEY (total_members) REFERENCES members (id) ON DELETE SET NULL ON UPDATE CASCADE
+        FOREIGN KEY (admin_id) REFERENCES user (id) ON DELETE SET NULL
     );
 
     CREATE TABLE IF NOT EXISTS members (
-        id INTEGER PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
-        church_id INTEGER,
-        FOREIGN KEY (church_id) REFERENCES churches (id)
+        church_id INTEGER NOT NULL,
+        FOREIGN KEY (church_id) REFERENCES churches (id) ON DELETE CASCADE
     );
-     `
+    `
+
     db.exec(schema, (err) => {
         if (err) console.error(err.message)
         else console.log('Multiple tables created successfully.')
     })
 })
 
-// Promisified helpers
 db.asyncGet = (sql, params = []) =>
     new Promise((resolve, reject) => {
         db.get(sql, params, (err, row) => {
@@ -50,11 +49,19 @@ db.asyncGet = (sql, params = []) =>
         })
     })
 
+db.asyncAll = (sql, params = []) =>
+    new Promise((resolve, reject) => {
+        db.all(sql, params, (err, rows) => {
+            if (err) reject(err)
+            else resolve(rows)
+        })
+    })
+
 db.asyncRun = (sql, params = []) =>
     new Promise((resolve, reject) => {
         db.run(sql, params, function (err) {
             if (err) reject(err)
-            else resolve(this) // `this.lastID` and `this.changes` available
+            else resolve(this)
         })
     })
 
