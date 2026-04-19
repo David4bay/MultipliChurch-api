@@ -42,7 +42,8 @@ app.delete("/churches/:id", requireAuth, requireAdmin, deleteChurch)
 app.get("/churches/:churchId/members", requireAuth, getMembers)
 app.get("/churches/:churchId/members/:id", requireAuth, getMemberById)
 app.put("/churches/:churchId/members/:id", requireAuth, requireAdmin, updateMember)
-app.post("/churches/:churchId/members", requireAuth, requireAdmin, createMember)
+// removed the requireAdmin middleware from /churches/:churchId/members so normal users can be members
+app.post("/churches/:churchId/members", requireAuth, createMember)
 app.delete("/churches/:churchId/members/:id", requireAuth, requireAdmin, removeMember)
 
 module.exports = app;

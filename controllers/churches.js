@@ -1,6 +1,5 @@
 const db = require('../db/db')
 
-// GET /churches — anyone authenticated
 async function getChurches(_, res) {
     try {
         const churches = await db.asyncAll(`
@@ -15,7 +14,6 @@ async function getChurches(_, res) {
     }
 }
 
-// GET /churches/:id — anyone authenticated
 async function getChurchById(req, res) {
     try {
         const church = await db.asyncGet(`
@@ -36,7 +34,6 @@ async function getChurchById(req, res) {
     }
 }
 
-// POST /churches — admin only
 async function createChurch(req, res) {
     const { name } = req.body
     const admin_id = req.user.id
@@ -46,13 +43,19 @@ async function createChurch(req, res) {
     }
 
     try {
-        // Guard: verify admin exists in DB
-        const adminExists = await db.asyncGet('SELECT id FROM user WHERE id = ? AND isAdmin = 1', [admin_id])
-        if (!adminExists) {
-            return res.status(403).json({ message: 'Admin user not found' })
+    
+    
+        const admin = await db.asyncGet(
+            'SELECT id FROM user WHERE id = ? AND isAdmin = 1',
+            [admin_id]
+        )
+        if (!admin) {
+            return res.status(403).json({ message: 'Admin privileges required' })
         }
 
-        const existing = await db.asyncGet('SELECT id FROM churches WHERE name = ?', [name])
+        const existing = await db.asyncGet(
+            'SELECT id FROM churches WHERE name = ?', [name]
+        )
         if (existing) {
             return res.status(400).json({ message: 'A church with that name already exists' })
         }
@@ -69,25 +72,29 @@ async function createChurch(req, res) {
     }
 }
 
-// PUT /churches/:id — admin only
 async function updateChurch(req, res) {
     const { name } = req.body
     const { id } = req.params
+    const admin_id = req.user.id
 
     if (!name) {
         return res.status(400).json({ message: 'Church name is required' })
     }
 
     try {
-        const church = await db.asyncGet('SELECT id FROM churches WHERE id = ?', [id])
+        const church = await db.asyncGet(
+            'SELECT id, admin_id FROM churches WHERE id = ?', [id]
+        )
         if (!church) {
             return res.status(404).json({ message: 'Church not found' })
         }
 
-        await db.asyncRun(
-            'UPDATE churches SET name = ? WHERE id = ?',
-            [name, id]
-        )
+    
+        if (church.admin_id !== admin_id) {
+            return res.status(403).json({ message: 'You do not have permission to update this church' })
+        }
+
+        await db.asyncRun('UPDATE churches SET name = ? WHERE id = ?', [name, id])
 
         return res.status(200).json({ message: 'Church updated successfully' })
     } catch (err) {
@@ -96,16 +103,23 @@ async function updateChurch(req, res) {
     }
 }
 
-// DELETE /churches/:id — admin only
 async function deleteChurch(req, res) {
     const { id } = req.params
+    const admin_id = req.user.id
 
     try {
-        const church = await db.asyncGet('SELECT id FROM churches WHERE id = ?', [id])
+        const church = await db.asyncGet(
+            'SELECT id, admin_id FROM churches WHERE id = ?', [id]
+        )
         if (!church) {
             return res.status(404).json({ message: 'Church not found' })
         }
 
+        if (church.admin_id !== admin_id) {
+            return res.status(403).json({ message: 'You do not have permission to delete this church' })
+        }
+
+    
         await db.asyncRun('DELETE FROM churches WHERE id = ?', [id])
 
         return res.status(200).json({ message: 'Church deleted successfully' })

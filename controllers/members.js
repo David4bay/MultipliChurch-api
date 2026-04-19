@@ -9,10 +9,13 @@ async function getMembers(req, res) {
             return res.status(404).json({ message: 'Church not found' })
         }
 
-        const members = await db.asyncAll(
-            'SELECT id, name FROM members WHERE church_id = ?',
-            [churchId]
-        )
+    
+        const members = await db.asyncAll(`
+            SELECT m.id, u.id AS user_id, u.username, u.isAdmin
+            FROM members m
+            JOIN user u ON m.user_id = u.id
+            WHERE m.church_id = ?
+        `, [churchId])
 
         return res.status(200).json(members)
     } catch (err) {
@@ -21,15 +24,16 @@ async function getMembers(req, res) {
     }
 }
 
-
 async function getMemberById(req, res) {
     const { churchId, id } = req.params
 
     try {
-        const member = await db.asyncGet(
-            'SELECT id, name, church_id FROM members WHERE id = ? AND church_id = ?',
-            [id, churchId]
-        )
+        const member = await db.asyncGet(`
+            SELECT m.id, u.id AS user_id, u.username, u.isAdmin, m.church_id
+            FROM members m
+            JOIN user u ON m.user_id = u.id
+            WHERE m.id = ? AND m.church_id = ?
+        `, [id, churchId])
 
         if (!member) {
             return res.status(404).json({ message: 'Member not found' })
@@ -42,13 +46,12 @@ async function getMemberById(req, res) {
     }
 }
 
-
 async function createMember(req, res) {
     const { churchId } = req.params
-    const { name } = req.body
+    const { user_id } = req.body
 
-    if (!name) {
-        return res.status(400).json({ message: 'Member name is required' })
+    if (!user_id) {
+        return res.status(400).json({ message: 'user_id is required' })
     }
 
     try {
@@ -57,15 +60,26 @@ async function createMember(req, res) {
             return res.status(404).json({ message: 'Church not found' })
         }
 
-        const result = await db.asyncRun(
-            'INSERT INTO members (name, church_id) VALUES (?, ?)',
-            [name, churchId]
-        )
+    
+        const user = await db.asyncGet('SELECT id FROM user WHERE id = ?', [user_id])
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' })
+        }
 
-        
-        await db.asyncRun(
-            'UPDATE churches SET total_members = total_members + 1 WHERE id = ?',
-            [churchId]
+    
+    
+        const alreadyMember = await db.asyncGet(
+            'SELECT id FROM members WHERE user_id = ? AND church_id = ?',
+            [user_id, churchId]
+        )
+        if (alreadyMember) {
+            return res.status(400).json({ message: 'User is already a member of this church' })
+        }
+
+    
+        const result = await db.asyncRun(
+            'INSERT INTO members (user_id, church_id) VALUES (?, ?)',
+            [user_id, churchId]
         )
 
         return res.status(201).json({ message: 'Member added successfully', id: result.lastID })
@@ -75,13 +89,12 @@ async function createMember(req, res) {
     }
 }
 
-
 async function updateMember(req, res) {
     const { churchId, id } = req.params
-    const { name } = req.body
+    const { new_church_id } = req.body
 
-    if (!name) {
-        return res.status(400).json({ message: 'Member name is required' })
+    if (!new_church_id) {
+        return res.status(400).json({ message: 'new_church_id is required' })
     }
 
     try {
@@ -89,12 +102,22 @@ async function updateMember(req, res) {
             'SELECT id FROM members WHERE id = ? AND church_id = ?',
             [id, churchId]
         )
-
         if (!member) {
             return res.status(404).json({ message: 'Member not found' })
         }
 
-        await db.asyncRun('UPDATE members SET name = ? WHERE id = ?', [name, id])
+        const targetChurch = await db.asyncGet(
+            'SELECT id FROM churches WHERE id = ?', [new_church_id]
+        )
+        if (!targetChurch) {
+            return res.status(404).json({ message: 'Target church not found' })
+        }
+
+    
+        await db.asyncRun(
+            'UPDATE members SET church_id = ? WHERE id = ?',
+            [new_church_id, id]
+        )
 
         return res.status(200).json({ message: 'Member updated successfully' })
     } catch (err) {
@@ -102,7 +125,6 @@ async function updateMember(req, res) {
         return res.status(500).json({ message: 'Internal server error' })
     }
 }
-
 
 async function removeMember(req, res) {
     const { churchId, id } = req.params
@@ -112,18 +134,12 @@ async function removeMember(req, res) {
             'SELECT id FROM members WHERE id = ? AND church_id = ?',
             [id, churchId]
         )
-
         if (!member) {
             return res.status(404).json({ message: 'Member not found' })
         }
 
+    
         await db.asyncRun('DELETE FROM members WHERE id = ?', [id])
-
-        
-        await db.asyncRun(
-            'UPDATE churches SET total_members = MAX(0, total_members - 1) WHERE id = ?',
-            [churchId]
-        )
 
         return res.status(200).json({ message: 'Member removed successfully' })
     } catch (err) {
