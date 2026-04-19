@@ -65,12 +65,23 @@ async function signup(req, res) {
         const hashedPassword = await bcrypt.hash(request.password, 10)
         const isAdmin = request.role === "admin" ? 1 : 0
 
-        await db.asyncRun(
+        const user = await db.asyncRun(
             "INSERT INTO user (username, password, isAdmin) VALUES (?, ?, ?)",
             [request.username, hashedPassword, isAdmin]
         )
 
-        return res.status(201).json({ message: "User created successfully" })
+        const userInfo = await db.asyncGet("SELECT * FROM user WHERE id = ?", [user.lastID])
+    
+        const token = jwt.sign(
+            { 
+                id: userInfo.id, username: userInfo.username, 
+                role: userInfo.isAdmin ? "admin" : "member" 
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: "1h" }
+        )
+
+        return res.status(201).json({ message: "success", token })
 
     } catch (error) {
         console.error(error)
