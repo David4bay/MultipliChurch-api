@@ -52,6 +52,8 @@ async function createMember(req, res) {
     const { churchId } = req.params
     const { user_id } = req.body
 
+    console.log("create member api user_id", user_id)
+
     if (!user_id) {
         return res.status(400).json({ message: "user_id is required" })
     }
@@ -62,12 +64,14 @@ async function createMember(req, res) {
             return res.status(404).json({ message: "Church not found" })
         }
 
-    
-        const user = await db.asyncGet("SELECT id FROM user WHERE id = ?", [user_id])
-        if (!user) {
-            return res.status(404).json({ message: "User not found" })
-        }
+        const user = await db.asyncGet("SELECT * FROM user WHERE id = ?", [user_id])
 
+        console.log("user data", user)
+        if (req.user.role !== "admin") {
+            if (!user) {
+                return res.status(404).json({ message: "User not found" })
+            }
+        }
     
         const alreadyMember = await db.asyncGet(
             "SELECT id FROM members WHERE user_id = ? AND church_id = ?",

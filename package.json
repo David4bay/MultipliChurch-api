@@ -25,6 +25,8 @@
     "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
     "nodemon": "^3.1.14",
-    "sqlite3": "^6.0.1"
+    "sqlite3": "^6.0.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
   }
 }
