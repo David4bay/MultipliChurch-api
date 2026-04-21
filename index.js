@@ -10,6 +10,8 @@ app.use(function(req, res) {
     return res.status(404).json({ message: "Route not found" })
 })
 
-app.listen(PORT, function() {
-    console.log(`App running on port ${PORT}`)
-})
+if (process.env.NODE_ENV !== "production") {
+    app.listen(PORT, function() {
+        console.log(`App running on port ${PORT}`)
+    })
+}
